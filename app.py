@@ -107,8 +107,11 @@ if not check_password():
     st.stop()
 
 # Initialize session state
+# Check for API key in environment or secrets
+env_api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY", "")
+
 defaults = {
-    "openai_api_key": "",
+    "openai_api_key": env_api_key,
     "company_info": None,
     "filings": [],
     "ticker": "",
@@ -199,18 +202,28 @@ st.sidebar.header("⚙️ Configuration")
 
 # API Key (stored in session state)
 st.sidebar.markdown("**OpenAI API Key**")
-api_key_input = st.sidebar.text_input(
-    "API Key",
-    value=st.session_state.openai_api_key,
-    type="password",
-    placeholder="sk-...",
-    label_visibility="collapsed"
-)
-if api_key_input:
-    st.session_state.openai_api_key = api_key_input
-    st.sidebar.success("✅ API Key saved")
+
+# Check if API key is pre-configured in secrets/environment
+preconfigured_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY", "")
+
+if preconfigured_key:
+    # API key is pre-configured - show status message
+    st.sidebar.info("🔑 API key pre-configured")
+    st.session_state.openai_api_key = preconfigured_key
 else:
-    st.sidebar.warning("Enter your OpenAI API key above")
+    # No pre-configured key - show input field
+    api_key_input = st.sidebar.text_input(
+        "API Key",
+        value=st.session_state.openai_api_key,
+        type="password",
+        placeholder="sk-...",
+        label_visibility="collapsed"
+    )
+    if api_key_input:
+        st.session_state.openai_api_key = api_key_input
+        st.sidebar.success("✅ API Key saved")
+    else:
+        st.sidebar.warning("⚠️ Enter your OpenAI API key above")
 
 # Model selection for FDSO analysis
 st.sidebar.markdown("**FDSO Analysis Model**")
