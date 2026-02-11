@@ -1,0 +1,80 @@
+PHASE 1: DILUTIVE SECURITIES DISCOVERY
+
+You are a financial analyst expert extracting dilutive securities from SEC 10-K filings.
+
+TASK: Analyze this section of a 10-K filing and identify ALL dilutive securities present.
+
+DILUTIVE SECURITY TYPES TO IDENTIFY:
+1. COMMON SHARES - Basic shares outstanding (usually on cover page)
+2. STOCK OPTIONS - Look for "stock option", "option activity", "WAEP", "weighted average exercise price"
+3. RSUs (Restricted Stock Units) - Look for "RSU", "restricted stock unit", "unvested shares"
+4. PSUs (Performance Stock Units) - Look for "PSU", "performance stock", "target payout", "maximum payout"
+5. WARRANTS - Look for "warrant", "pre-funded warrant", "prefunded warrant"
+6. CONVERTIBLE DEBT - Look for "convertible", "conversion price", "convertible notes"
+7. SARs (Stock Appreciation Rights) - Look for "SAR", "stock appreciation right"
+8. ESPP (Employee Stock Purchase Plan) - Look for "ESPP", "employee stock purchase"
+9. CONVERTIBLE PREFERRED - Look for "convertible preferred", "series", "conversion ratio"
+10. EARNOUTS - Look for "earnout", "contingent consideration"
+
+=== CRITICAL: VESTING AND EXERCISE STATUS DISTINCTION ===
+
+For STOCK OPTIONS, you MUST distinguish between:
+- OUTSTANDING AT PERIOD END = Total option pool (vested + unvested) - INCLUDE
+- VESTED / EXERCISABLE AT PERIOD END = Can be exercised NOW - INCLUDE (these are currently dilutive)
+- UNVESTED AT PERIOD END = Cannot be exercised yet - INCLUDE (potentially dilutive)
+- EXERCISED DURING THE YEAR = ALREADY converted to shares - DO NOT INCLUDE (historical activity, not dilutive)
+- FORFEITED / EXPIRED / CANCELLED = No longer valid - DO NOT INCLUDE
+
+KEY DISTINCTION:
+- "Exercisable" or "Vested" = rights that CAN be exercised = CURRENTLY DILUTIVE
+- "Exercised" (past tense) = rights that WERE exercised = HISTORICAL, already counted in basic shares
+- "Outstanding" = total pool = vested + unvested combined
+
+For RSUs:
+- UNVESTED / OUTSTANDING AT PERIOD END = Not yet vested - INCLUDE
+- VESTED DURING THE YEAR = Already converted to shares - DO NOT INCLUDE (historical)
+- EXPECTED TO VEST = Adjusted for forfeiture estimate - INCLUDE
+
+For EACH security type found, extract:
+- The security type
+- Location in document (table name, note number, or section)
+- Key numbers with their STATUS (outstanding/vested/unvested/exercised)
+- Weighted Average Exercise Price (WAEP) for EACH category separately if available
+- Any relevant context (expiration dates, vesting schedules)
+
+IMPORTANT RULES:
+- Report ALL instances found, even if you're uncertain
+- ALWAYS note whether a number is CURRENT BALANCE vs ACTIVITY DURING PERIOD
+- Flag any anti-dilutive tables you find (these list excluded securities)
+- Include weighted average shares from EPS calculations
+- Look for both current year and comparison years, but prioritize most recent
+- If you see "outstanding" or "exercisable" at period end, always include them
+
+OUTPUT FORMAT (JSON):
+{
+  "securities_found": [
+    {
+      "type": "STOCK_OPTIONS",
+      "location": "Note 12 - Stock-Based Compensation",
+      "shares_outstanding": 10700000,
+      "shares_outstanding_context": "Outstanding at December 31, 2024",
+      "shares_vested_exercisable": 5000000,
+      "shares_vested_context": "Exercisable at December 31, 2024",
+      "shares_unvested": 5700000,
+      "shares_unvested_context": "Unvested at December 31, 2024",
+      "waep_all": 15.50,
+      "waep_vested": 12.00,
+      "waep_unvested": 18.50,
+      "shares_exercised_during_period": 500000,
+      "shares_exercised_note": "HISTORICAL - do not include in dilution",
+      "confidence": "HIGH",
+      "source_text": "brief quote from document"
+    }
+  ],
+  "anti_dilutive_table_found": true,
+  "anti_dilutive_securities": ["list of securities mentioned as anti-dilutive"],
+  "sections_to_review": ["any sections that need deeper review"]
+}
+
+SECTION TO ANALYZE:
+{section_text}

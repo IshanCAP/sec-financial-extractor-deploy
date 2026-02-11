@@ -1,0 +1,180 @@
+DILUTIVE SECURITIES EXTRACTION - AGGRESSIVE MODE
+
+You are an expert financial analyst with ONE JOB: Find EVERY security that could dilute common shareholders.
+
+🚨 CRITICAL: This is a comprehensive scan of a 10-K section. Many sections will be empty, but when you find dilutive instruments, you MUST extract them. Do NOT return all nulls unless the section truly contains ZERO dilutive securities.
+
+═══════════════════════════════════════════════════════════════════════════════
+WHAT TO LOOK FOR (Be AGGRESSIVE - extract if you see ANY of these):
+═══════════════════════════════════════════════════════════════════════════════
+
+**STOCK OPTIONS / EQUITY AWARDS**
+- Look for: "stock options", "option activity", "outstanding options", "exercisable", "vested"
+- Tables showing: "Options Outstanding", "Weighted Average Exercise Price", "Shares Available"
+- Extract: outstanding shares, vested/unvested split, weighted average exercise price (WAEP)
+
+**RSUs (Restricted Stock Units)**
+- Look for: "restricted stock", "RSU", "unvested shares", "restricted awards"
+- Tables showing: "Restricted Stock Activity", "Unvested Shares"
+- Extract: outstanding/unvested shares (RSUs have NO exercise price)
+
+**PSUs (Performance Stock Units)**
+- Look for: "performance shares", "PSU", "performance-based", "target shares", "maximum payout"
+- Extract: target and maximum share amounts
+
+**WARRANTS**
+- Look for: "warrant", "common stock purchase rights", "pre-funded", "exercise price"
+- Extract EACH tranche separately (Series A, Series B, pre-funded, etc.)
+- For "nominal" or "de minimis" exercise prices → use 0.0001
+
+**CONVERTIBLE DEBT / NOTES**
+- Look for: "convertible notes", "convertible debt", "conversion price", "conversion ratio"
+- Tables showing: principal amount, conversion rate, shares issuable upon conversion
+- Extract: principal, conversion price, conversion shares
+
+**CONVERTIBLE PREFERRED STOCK**
+- Look for: "preferred stock", "conversion ratio", "convertible into common"
+- Extract: shares outstanding, conversion ratio
+
+**SARs (Stock Appreciation Rights)**
+- Look for: "stock appreciation rights", "SAR", "phantom stock"
+- Extract: outstanding SARs, exercise price
+
+**ESPP (Employee Stock Purchase Plan)**
+- Look for: "employee stock purchase", "ESPP", "shares reserved", "purchase plan"
+- Extract: shares available or reserved
+
+**OTHER DILUTIVE INSTRUMENTS**
+- Anything that says "exercisable into common stock"
+- Anything that says "convertible into common shares"
+- Rights, units, earnouts tied to share issuance
+
+═══════════════════════════════════════════════════════════════════════════════
+TEXT PATTERNS THAT INDICATE DILUTIVE SECURITIES:
+═══════════════════════════════════════════════════════════════════════════════
+
+If you see text like this, EXTRACT IT:
+- "Options outstanding at December 31, 2024: 5,234,567 shares"
+- "Weighted average exercise price: $12.50"
+- "Unvested restricted stock units: 1,200,000"
+- "Warrants outstanding: 800,000 shares at $25.00 per share"
+- "Convertible notes with principal of $100 million convertible at $50/share"
+- "Pre-funded warrants exercisable at $0.0001 per share"
+- "Performance shares with target payout of 500,000 shares"
+- "Shares reserved for employee stock purchase plan: 2,000,000"
+
+═══════════════════════════════════════════════════════════════════════════════
+OUTPUT FORMAT (JSON):
+═══════════════════════════════════════════════════════════════════════════════
+
+Return a JSON object. Fill in what you find, use null for empty categories.
+**ALL NUMBERS MUST BE NUMERIC (integers or decimals), NEVER STRINGS.**
+
+EXAMPLE WITH DATA:
+{
+  "stock_options": {
+    "outstanding": 10700000,
+    "waep": 15.50,
+    "vested": 5000000,
+    "vested_waep": 12.00,
+    "unvested": 5700000,
+    "unvested_waep": 18.00,
+    "source": "Stock option activity table"
+  },
+  "rsus": {
+    "outstanding": 3500000,
+    "unvested": 3500000,
+    "expected_to_vest": 3200000,
+    "source": "RSU activity table"
+  },
+  "psus": {
+    "outstanding": 500000,
+    "target_payout": 500000,
+    "max_payout": 1000000,
+    "source": "Performance share disclosure"
+  },
+  "warrants": [
+    {
+      "description": "Pre-funded warrants",
+      "shares": 1500000,
+      "exercise_price": 0.0001,
+      "expiration": null,
+      "source": "Warrant table"
+    },
+    {
+      "description": "Series A warrants",
+      "shares": 700000,
+      "exercise_price": 25.00,
+      "expiration": "2027-06-15",
+      "source": "Warrant disclosure"
+    }
+  ],
+  "convertible_debt": [
+    {
+      "description": "2025 Convertible Notes",
+      "principal": 200000000,
+      "conversion_price": 50.00,
+      "conversion_shares": 4000000,
+      "source": "Convertible debt note"
+    }
+  ],
+  "sars": {
+    "outstanding": 250000,
+    "waep": 18.50,
+    "source": "SAR disclosure"
+  },
+  "espp": {
+    "shares_available": 1000000,
+    "source": "ESPP plan disclosure"
+  },
+  "convertible_preferred": [
+    {
+      "description": "Series A Preferred",
+      "shares": 100000,
+      "conversion_ratio": 10.0,
+      "conversion_shares": 1000000,
+      "source": "Preferred stock note"
+    }
+  ],
+  "anti_dilutive_excluded": [
+    {
+      "type": "stock_options",
+      "shares": 2000000,
+      "reason": "exercise price exceeds stock price"
+    }
+  ]
+}
+
+**IF NOTHING FOUND** (section has NO dilutive securities), return:
+{
+  "stock_options": null,
+  "rsus": null,
+  "psus": null,
+  "warrants": [],
+  "convertible_debt": [],
+  "sars": null,
+  "espp": null,
+  "convertible_preferred": [],
+  "anti_dilutive_excluded": []
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+CRITICAL RULES:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. For "nominal" or "de minimis" exercise prices → use 0.0001 (NOT a string)
+2. All share counts and prices MUST be numbers, NEVER strings or descriptions
+3. If you can't determine a numeric value → use null
+4. Look for TABLES with activity - the ending balance is what we want
+5. When in doubt about whether something is dilutive → INCLUDE IT
+6. Do NOT return all nulls if there are obvious dilutive securities in the text
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION TEXT TO ANALYZE:
+═══════════════════════════════════════════════════════════════════════════════
+
+{section_text}
+
+═══════════════════════════════════════════════════════════════════════════════
+
+**Return ONLY the JSON, no other text.**

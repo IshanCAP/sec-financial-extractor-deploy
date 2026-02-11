@@ -1,0 +1,71 @@
+QUICK SCAN: IDENTIFY NOTES WITH DILUTIVE SECURITIES
+
+You are a financial analyst doing a PERMISSIVE quick scan of 10-K note titles to identify which notes MIGHT POSSIBLY contain dilutive securities.
+
+TASK: Review the list of note titles below and identify which notes MIGHT POSSIBLY contain dilutive instruments.
+
+YOUR GOAL: Cast a WIDE NET. It is FAR BETTER to flag 10 notes that turn out empty than to miss 1 note with dilutive securities.
+
+DILUTIVE INSTRUMENTS typically appear in notes about:
+- Stock-based compensation / Share-based payments / Share-based compensation
+- Equity compensation plans / Equity incentive plans
+- Stock options / Employee stock options
+- Restricted stock units (RSUs) / Restricted stock awards (RSAs)
+- Performance stock units (PSUs) / Performance shares
+- Warrants / Common stock warrants / Prefunded warrants
+- Convertible debt / Convertible notes / Convertible senior notes
+- Convertible preferred stock / Preferred stock
+- Stockholders' equity / Shareholders' equity / Equity
+- Share capital / Capital stock / Common stock
+- Equity awards / Stock awards
+- Employee benefit plans / Incentive plans / Long-term incentive plans
+- Long-term debt (may contain convertible notes)
+- Financing arrangements (may contain warrants)
+- Debt (may have conversion features)
+- Capital structure (may discuss equity instruments)
+- Subsequent events (may describe equity issuances)
+
+NOTES TO ANALYZE:
+{note_list}
+
+OUTPUT FORMAT (JSON):
+{
+  "notes_with_dilutive_securities": [
+    "note_9",
+    "note_12",
+    "note_14"
+  ],
+  "reasoning": {
+    "note_9": "Share Capital - likely contains equity instruments",
+    "note_12": "Stock-Based Compensation - likely contains options/RSUs",
+    "note_14": "Convertible Debt - may contain convertible instruments"
+  }
+}
+
+IMPORTANT RULES (READ CAREFULLY):
+1. **ERR HEAVILY ON THE SIDE OF INCLUSION** - When in doubt, FLAG IT
+2. **FALSE POSITIVES ARE ACCEPTABLE** - We'd rather check 20 notes than miss 1 dilutive security
+3. **FALSE NEGATIVES ARE UNACCEPTABLE** - Missing a note with dilutive securities defeats the entire purpose
+4. If a note title contains ANY of these words, FLAG IT immediately:
+   - Stock, Share, Equity, Warrant, Option, RSU, PSU, Convertible, Compensation, Incentive, Award, Capital, Preferred
+5. If a note title is ambiguous or vague (e.g., "Note 12 - Additional Information"), FLAG IT (it might contain surprises)
+6. Even notes about "Debt", "Financing", or "Subsequent Events" should be flagged (they often contain warrants or convertible features)
+7. Return note_X format (e.g., "note_9", "note_12")
+8. **WHEN UNCERTAIN, ALWAYS FLAG THE NOTE**
+
+EXAMPLES OF NOTES YOU SHOULD FLAG:
+- "Stock-Based Compensation" ✓ (obvious)
+- "Stockholders' Equity" ✓ (obvious)
+- "Long-Term Debt" ✓ (may have convertible notes)
+- "Financing Arrangements" ✓ (may have warrants)
+- "Subsequent Events" ✓ (may describe equity issuances)
+- "Capital Structure" ✓ (discusses equity instruments)
+- "Note 12 - Additional Disclosures" ✓ (vague - might contain anything)
+
+EXAMPLES OF NOTES YOU SHOULD NOT FLAG:
+- "Revenue Recognition" ✗ (clearly about revenue)
+- "Income Taxes" ✗ (clearly about taxes)
+- "Property and Equipment" ✗ (clearly about fixed assets)
+- "Leases" ✗ (clearly about lease accounting)
+
+Return ONLY the JSON, no other text.

@@ -1,0 +1,138 @@
+PHASE 1.5: INDEPENDENT SECURITY DEEP DIVE
+
+You are extracting COMPLETE data for ONE specific security type: {security_type}
+
+TASK: Extract ALL details for {security_type} from this document section.
+
+=== CRITICAL STATUS CLASSIFICATIONS ===
+
+Every number you extract MUST be classified as one of:
+
+1. CURRENT_OUTSTANDING - Balance at period end (total pool) - DILUTIVE
+2. CURRENT_VESTED - Vested/Exercisable at period end - DILUTIVE
+3. CURRENT_UNVESTED - Unvested at period end - POTENTIALLY DILUTIVE
+4. HISTORICAL_EXERCISED - Exercised during period - NOT DILUTIVE (already shares)
+5. HISTORICAL_VESTED - Vested during period - Activity, not balance
+6. CANCELLED - Forfeited/Expired/Cancelled - NOT DILUTIVE
+
+=== CONTEXT CLUES FOR CLASSIFICATION ===
+
+CURRENT BALANCES (include in dilution):
+- "outstanding at December 31" / "outstanding at period end"
+- "exercisable at December 31" / "vested and exercisable"
+- "unvested at December 31" / "nonvested at period end"
+- "expected to vest"
+
+HISTORICAL ACTIVITY (DO NOT include in dilution):
+- "exercised during" / "options exercised" / "were exercised"
+- "vested during the year" / "shares vested"
+- "granted during" / "options granted"
+- "forfeited" / "expired" / "cancelled"
+
+=== EXTRACTION REQUIREMENTS FOR {security_type} ===
+
+STOCK_OPTIONS:
+- shares_outstanding: Total options at period end
+- shares_vested: Vested/Exercisable at period end (can exercise NOW)
+- shares_unvested: Unvested at period end (cannot exercise yet)
+- waep_outstanding: Weighted avg exercise price for ALL outstanding
+- waep_vested: Weighted avg exercise price for VESTED only
+- waep_unvested: Weighted avg exercise price for UNVESTED only
+- aggregate_intrinsic_value: If disclosed
+- avg_remaining_contractual_life: In years
+
+RSUs:
+- shares_outstanding: Total RSUs at period end (usually = unvested)
+- shares_unvested: Unvested at period end
+- shares_expected_to_vest: Forfeiture-adjusted count
+- weighted_avg_grant_date_fair_value: If disclosed
+
+PSUs:
+- shares_outstanding: Total PSUs at period end
+- target_payout: Shares at target performance
+- max_payout: Shares at maximum performance (often 200% of target)
+
+WARRANTS:
+- For EACH warrant tranche separately:
+  - description: Type (pre-funded, Series A, placement agent, etc.)
+  - shares_outstanding: Count at period end
+  - exercise_price: Strike price per share
+  - expiration_date: When they expire
+  - is_prefunded: True if exercise price <= $0.01
+
+CONVERTIBLE_DEBT:
+- principal_amount: Face value of debt
+- conversion_price: Price per share for conversion
+- conversion_shares: Principal / Conversion Price
+- maturity_date: When debt matures
+
+=== OUTPUT FORMAT ===
+
+{
+  "security_type": "{security_type}",
+  "extraction_successful": true,
+
+  "current_balances": {
+    "outstanding": {
+      "value": 10700000,
+      "context": "exact quote from document showing this is period-end balance",
+      "classification": "CURRENT_OUTSTANDING",
+      "table_location": "Note 12, Stock Option Activity"
+    },
+    "vested_exercisable": {
+      "value": 5000000,
+      "context": "Options exercisable at December 31, 2024: 5,000,000",
+      "classification": "CURRENT_VESTED",
+      "table_location": "Note 12"
+    },
+    "unvested": {
+      "value": 5700000,
+      "context": "Unvested options at December 31, 2024",
+      "classification": "CURRENT_UNVESTED",
+      "table_location": "Note 12"
+    }
+  },
+
+  "exercise_prices": {
+    "waep_outstanding": {
+      "value": 15.50,
+      "context": "Weighted average exercise price: $15.50"
+    },
+    "waep_vested": {
+      "value": 12.00,
+      "context": "WAEP for exercisable options: $12.00"
+    },
+    "waep_unvested": {
+      "value": 18.50,
+      "context": "WAEP for unvested: $18.50"
+    }
+  },
+
+  "historical_activity_not_dilutive": {
+    "exercised_during_period": {
+      "value": 500000,
+      "context": "Options exercised during 2024",
+      "note": "NOT included in dilution - already converted to shares"
+    },
+    "granted_during_period": {
+      "value": 2000000,
+      "context": "Options granted during 2024"
+    },
+    "forfeited_expired": {
+      "value": 300000,
+      "context": "Options forfeited/expired during 2024"
+    }
+  },
+
+  "additional_data": {
+    "aggregate_intrinsic_value": 45000000,
+    "avg_remaining_life_years": 6.5
+  },
+
+  "confidence": "HIGH",
+  "extraction_notes": "Any relevant notes about data quality or missing fields"
+}
+
+=== DOCUMENT SECTION TO ANALYZE ===
+
+{document_section}

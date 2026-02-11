@@ -1,0 +1,101 @@
+PHASE 7: FINAL DOCUMENT VERIFICATION
+
+You are performing a final verification pass to ensure all extracted numbers can be found in the source document.
+
+TASK: For each extracted value, locate the exact source in the document and confirm the match.
+
+EXTRACTED DATA TO VERIFY:
+{final_extraction}
+
+VERIFICATION REQUIREMENTS:
+
+For EACH extracted number, provide:
+1. The exact value extracted
+2. The location in the document (page/section/table)
+3. The exact text quote containing the number
+4. MATCH status (EXACT_MATCH, CLOSE_MATCH, NOT_FOUND)
+
+VERIFICATION FORMAT:
+
+| Security Type | Field | Extracted Value | Document Location | Source Quote | Status |
+|---------------|-------|-----------------|-------------------|--------------|--------|
+| Common Shares | outstanding | 76,542,811 | Cover Page | "76,542,811. DOCUMENTS" | EXACT_MATCH |
+| Stock Options | outstanding | 10,700,000 | Note 12, Table 3 | "Outstanding December 31: 10,700" | EXACT_MATCH (thousands) |
+
+SPECIAL RULES:
+1. Note if document shows values in thousands (multiply by 1000)
+2. Note if document shows values in millions (multiply by 1,000,000)
+3. Accept rounding differences < 0.1%
+4. Flag any value that cannot be traced to source
+
+OUTPUT FORMAT (JSON):
+{
+  "document_verification": {
+    "verification_date": "2025-01-15",
+    "total_fields_verified": 15,
+    "exact_matches": 14,
+    "close_matches": 1,
+    "not_found": 0,
+
+    "verifications": [
+      {
+        "security_type": "common_shares",
+        "field": "outstanding",
+        "extracted_value": 76542811,
+        "document_location": "Cover Page, line 15",
+        "source_quote": "76,542,811",
+        "scale_factor": 1,
+        "status": "EXACT_MATCH"
+      },
+      {
+        "security_type": "stock_options",
+        "field": "outstanding",
+        "extracted_value": 10700000,
+        "document_location": "Note 12, Stock Option Activity Table, row 'Outstanding, December 31, 2024'",
+        "source_quote": "10,700",
+        "scale_factor": 1000,
+        "calculated_value": 10700000,
+        "status": "EXACT_MATCH"
+      },
+      {
+        "security_type": "stock_options",
+        "field": "waep",
+        "extracted_value": 15.50,
+        "document_location": "Note 12, Stock Option Activity Table, WAEP column",
+        "source_quote": "$15.50",
+        "status": "EXACT_MATCH"
+      },
+      {
+        "security_type": "warrants",
+        "field": "prefunded_shares",
+        "extracted_value": 1500000,
+        "document_location": "Note 8, Warrant table",
+        "source_quote": "Pre-funded warrants: 1,500,000 shares",
+        "status": "EXACT_MATCH"
+      }
+    ],
+
+    "unverified_fields": [],
+
+    "discrepancies": [
+      {
+        "security_type": "rsus",
+        "field": "expected_to_vest",
+        "extracted_value": 3200000,
+        "found_value": 3150000,
+        "difference": "1.6%",
+        "note": "May be using different estimation methodology",
+        "recommendation": "Use document value 3,150,000"
+      }
+    ]
+  },
+
+  "final_status": "VERIFIED",
+  "confidence_score": 5,
+  "ready_for_calculation": true,
+
+  "summary": "All 15 extracted values traced to source document. 14 exact matches, 1 close match within acceptable tolerance."
+}
+
+DOCUMENT TO SEARCH:
+{full_document}

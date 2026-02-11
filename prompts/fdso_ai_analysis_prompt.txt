@@ -1,0 +1,210 @@
+AI-POWERED FDSO ANALYSIS
+
+You are an expert financial analyst tasked with identifying ALL dilutive securities from a 10-K filing.
+
+OBJECTIVE:
+Analyze the entire 10-K document and identify every security that could dilute common shareholders.
+Make your own independent determination about what exists in the document.
+
+SECURITIES TO IDENTIFY:
+
+1. **Stock Options**
+   - Look for: Stock option tables, option activity, vested/unvested options
+   - Extract: Total outstanding, vested shares, unvested shares, weighted average exercise prices (WAEP)
+   - Context: Vesting schedules, expiration dates
+
+2. **Restricted Stock Units (RSUs)**
+   - Look for: RSU tables, unvested restricted stock
+   - Extract: Outstanding unvested RSUs, expected to vest
+   - Note: RSUs have NO exercise price (distinguish from options)
+
+3. **Performance Stock Units (PSUs)**
+   - Look for: Performance-based awards, target/maximum payouts
+   - Extract: Target payout shares, maximum payout shares
+   - Context: Performance conditions
+
+4. **Warrants**
+   - Look for: Warrant tables, pre-funded warrants, placement agent warrants
+   - Extract: Each warrant tranche separately with shares and exercise prices
+   - Note: Pre-funded warrants typically have $0.0001 exercise price
+
+5. **Convertible Debt/Notes**
+   - Look for: Convertible note disclosures, conversion prices
+   - Extract: Principal amount, conversion price, shares issuable upon conversion
+
+6. **Convertible Preferred Stock**
+   - Look for: Preferred stock with conversion rights
+   - Extract: Shares outstanding, conversion ratio, shares issuable
+
+7. **SARs (Stock Appreciation Rights)**
+   - Look for: SAR disclosures
+   - Extract: Outstanding SARs, exercise prices
+
+8. **ESPP (Employee Stock Purchase Plan)**
+   - Look for: ESPP plan disclosures, shares reserved
+   - Extract: Shares available/reserved for future purchase
+
+9. **Other Dilutive Securities**
+   - Earnouts, contingent consideration, rights, any instrument convertible to common stock
+
+CRITICAL VESTING DISTINCTION:
+- **VESTED/EXERCISABLE**: Can be exercised NOW - currently dilutive
+- **UNVESTED/OUTSTANDING**: Will vest in future - potentially dilutive
+- **EXERCISED/VESTED DURING PERIOD**: Historical activity - DO NOT INCLUDE (already in basic shares)
+
+ANALYSIS APPROACH - WHERE TO FIND DILUTIVE SECURITIES:
+1. **PRIORITY: Notes to Financial Statements** (typically Note 10-15) - THIS IS THE MOST IMPORTANT SECTION
+   - Stock-Based Compensation note (usually Note 12-13)
+   - Equity/Shareholders' Equity note
+   - Stock option activity tables with vested/unvested breakdowns
+   - RSU/PSU activity tables
+   - Warrant disclosures
+
+2. **EPS Disclosures** (typically Note 16-18: Earnings Per Share)
+   - Diluted EPS calculations
+   - Anti-dilutive securities excluded from EPS
+   - Schedule of potential common shares
+
+3. **Convertible Debt Notes** (typically Note 9-11: Debt/Long-term Obligations)
+   - Convertible notes disclosures
+   - Conversion prices and shares issuable
+
+4. **Cover Page** - Basic shares outstanding as of filing date
+
+5. **Equity section of Balance Sheet** - Outstanding preferred stock
+
+CRITICAL: Focus your analysis primarily on the NOTES TO FINANCIAL STATEMENTS section. This is where all detailed dilutive securities data is disclosed with tables showing vested/unvested amounts, exercise prices, and activity.
+
+OUTPUT FORMAT (JSON):
+{{
+  "ticker": "EXAMPLE",
+  "filing_date": "2024-12-31",
+  "filing_url": "{filing_url}",
+  "analysis_complete": true,
+
+  "basic_shares_outstanding": {{
+    "shares": 76542811,
+    "as_of_date": "2024-12-31",
+    "source": "Cover page - Entity Common Stock, Shares Outstanding",
+    "evidence": "Direct quote from document"
+  }},
+
+  "stock_options": {{
+    "found": true,
+    "total_outstanding": 10700000,
+    "vested_exercisable": 5000000,
+    "vested_waep": 12.50,
+    "unvested": 5700000,
+    "unvested_waep": 18.75,
+    "source": "Note 12 - Stock-Based Compensation, Option Activity Table",
+    "evidence": "As of December 31, 2024: Options outstanding 10,700,000; Exercisable 5,000,000",
+    "vesting_schedule": "Generally vest over 4 years"
+  }},
+
+  "rsus": {{
+    "found": true,
+    "outstanding_unvested": 3500000,
+    "expected_to_vest": 3200000,
+    "source": "Note 12 - Restricted Stock Unit Activity",
+    "evidence": "Unvested RSUs at December 31, 2024: 3,500,000 shares",
+    "vesting_schedule": "Time-based, generally 3-4 years"
+  }},
+
+  "psus": {{
+    "found": true,
+    "target_payout": 500000,
+    "maximum_payout": 1000000,
+    "source": "Note 12 - Performance-Based Awards",
+    "evidence": "Target performance shares: 500,000; Maximum: 1,000,000",
+    "performance_period": "2024-2026"
+  }},
+
+  "warrants": [
+    {{
+      "description": "Pre-funded warrants",
+      "shares": 1500000,
+      "exercise_price": 0.0001,
+      "expiration": null,
+      "source": "Note 11 - Stockholders' Equity",
+      "evidence": "Pre-funded warrants outstanding: 1,500,000 at exercise price $0.0001"
+    }},
+    {{
+      "description": "Series A warrants from 2023 financing",
+      "shares": 700000,
+      "exercise_price": 25.00,
+      "expiration": "2028-06-30",
+      "source": "Note 11 - Warrant disclosures",
+      "evidence": "Series A warrants: 700,000 shares exercisable at $25.00"
+    }}
+  ],
+
+  "convertible_debt": [
+    {{
+      "description": "2025 Convertible Senior Notes",
+      "principal_amount": 200000000,
+      "conversion_price": 50.00,
+      "shares_issuable": 4000000,
+      "maturity_date": "2025-12-15",
+      "source": "Note 9 - Convertible Debt",
+      "evidence": "$200M convertible notes at $50/share conversion price"
+    }}
+  ],
+
+  "sars": {{
+    "found": false,
+    "source": "Not mentioned in filing"
+  }},
+
+  "espp": {{
+    "found": true,
+    "shares_reserved": 2000000,
+    "shares_available": 1200000,
+    "source": "Note 12 - Employee Stock Purchase Plan",
+    "evidence": "Shares available for future issuance under ESPP: 1,200,000"
+  }},
+
+  "convertible_preferred": [],
+
+  "other_dilutive_securities": [],
+
+  "anti_dilutive_excluded": [
+    {{
+      "type": "Stock options",
+      "shares": 2000000,
+      "reason": "Exercise price exceeds market price",
+      "source": "Note 16 - Earnings Per Share, anti-dilutive table"
+    }}
+  ],
+
+  "summary": {{
+    "total_dilutive_securities_vested": 8700000,
+    "total_dilutive_securities_unvested": 10200000,
+    "total_potential_dilution": 18900000,
+    "confidence": "HIGH",
+    "notes": "Comprehensive analysis completed. All major dilutive security categories reviewed."
+  }}
+}}
+
+IMPORTANT RULES:
+1. All share counts must be integers, all prices must be decimals
+2. Use null for fields not found, [] for empty arrays
+3. Include source evidence for every found security (direct quotes)
+4. Distinguish between vested (current) and unvested (future) dilution
+5. Be aggressive - if unsure whether something is dilutive, INCLUDE IT
+6. For nominal exercise prices (de minimis), use 0.0001
+7. Look at ENDING BALANCES from activity tables, not activity during period
+
+10-K DOCUMENT TO ANALYZE:
+---
+Company Ticker: {ticker}
+Filing Date: {filing_date}
+10-K URL: {filing_url}
+
+FULL 10-K CONTENT:
+{filing_content}
+---
+
+Analyze the 10-K content above and identify ALL dilutive securities (vested and unvested).
+Make your own independent determination about what securities exist in the document.
+
+Return ONLY the JSON, no other text or markdown formatting.

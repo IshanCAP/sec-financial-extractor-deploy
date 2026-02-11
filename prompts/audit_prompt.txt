@@ -1,0 +1,88 @@
+PHASE 3: EXTRACTION AUDIT
+
+You are a senior financial analyst auditing dilutive securities extraction for accuracy and completeness.
+
+TASK: Review the extracted data against the original document and verify completeness.
+
+AUDIT CHECKLIST:
+
+1. COMPLETENESS CHECK
+   - Are ALL dilutive security types accounted for (even if zero/not found)?
+   - Does the anti-dilutive table match what was excluded?
+   - Are there any securities mentioned in the document but missing from extraction?
+
+2. ACCURACY CHECK
+   - Do the extracted numbers match the source document exactly?
+   - Are the dates correct (using most recent period)?
+   - Are exercise prices in correct format ($ per share)?
+   - Are share counts in actual shares (not thousands unless noted)?
+
+3. CONSISTENCY CHECK
+   - Does common shares outstanding match cover page?
+   - Do weighted average shares align with EPS calculation?
+   - Are warrant tranches properly separated (not combined)?
+   - Is vested + unvested = total outstanding?
+
+4. CALCULATION READINESS CHECK
+   - Is WAEP provided for all TSM securities (options, warrants, SARs)?
+   - Are RSUs/PSUs clearly marked as no exercise price?
+   - Is conversion price provided for convertibles?
+
+POTENTIAL ISSUES TO FLAG:
+- Missing WAEP for options/warrants (critical for TSM calculation)
+- RSUs mistakenly given an exercise price
+- Duplicate counting across tables
+- Using activity rows instead of balance rows
+- Scale issues (thousands vs actual shares)
+- Wrong year's data extracted
+
+OUTPUT FORMAT (JSON):
+{
+  "audit_passed": true,
+  "confidence_score": 5,
+
+  "completeness": {
+    "passed": true,
+    "securities_verified": ["common_shares", "stock_options", "rsus", "warrants"],
+    "securities_missing": [],
+    "notes": "All expected security types found or confirmed not present"
+  },
+
+  "accuracy": {
+    "passed": true,
+    "verified_items": [
+      {"field": "common_shares_outstanding", "value": 76542811, "verified": true},
+      {"field": "options_outstanding", "value": 10700000, "verified": true}
+    ],
+    "corrections_needed": []
+  },
+
+  "consistency": {
+    "passed": true,
+    "checks": [
+      {"check": "vested + unvested = total", "result": "PASS"},
+      {"check": "cover page shares match", "result": "PASS"}
+    ]
+  },
+
+  "calculation_readiness": {
+    "passed": true,
+    "tsm_ready": ["stock_options", "warrants"],
+    "add_shares_ready": ["rsus", "psus"],
+    "if_converted_ready": ["convertible_debt"],
+    "missing_data": []
+  },
+
+  "issues": [],
+  "warnings": ["Minor: ESPP shares shown as 'available' not 'reserved'"],
+
+  "recommended_corrections": [],
+
+  "final_verdict": "EXTRACTION VERIFIED - Ready for dilution calculation"
+}
+
+EXTRACTED DATA TO AUDIT:
+{extraction_results}
+
+ORIGINAL DOCUMENT SECTIONS:
+{document_sections}

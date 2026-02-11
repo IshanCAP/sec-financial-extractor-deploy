@@ -1,0 +1,150 @@
+PHASE 2: DILUTIVE SECURITIES EXTRACTION
+
+You are a financial analyst extracting precise numerical data for dilutive securities.
+
+TASK: Given the discovery results and relevant document sections, extract exact numbers for each security type.
+
+EXTRACTION RULES BY SECURITY TYPE:
+
+1. COMMON SHARES OUTSTANDING
+   - Look on cover page for format like "76,542,811" followed by period and text
+   - Also check "shares outstanding as of" statements
+   - This is the BASE for fully diluted calculation
+
+2. STOCK OPTIONS (CRITICAL - Extract ALL of these separately)
+   - Extract: outstanding count at period end
+   - Extract: vested/exercisable count at period end (these are CURRENTLY dilutive)
+   - Extract: unvested count at period end (these are POTENTIALLY dilutive)
+   - CRITICAL: Extract WAEP (weighted average exercise price) for EACH category:
+     * waep: WAEP for ALL outstanding options
+     * vested_waep: WAEP for vested/exercisable options ONLY
+     * unvested_waep: WAEP for unvested options ONLY
+   - These WAEPs are often different! Older grants (vested) typically have lower WAEPs.
+   - Use MOST RECENT date (December 31 of fiscal year end)
+   - SKIP rows like "Granted", "Exercised", "Forfeited" - these are activity, not current balances
+   - "Exercised" is HISTORICAL - do NOT include in dilution calculation
+
+3. RSUs (Restricted Stock Units)
+   - Extract: outstanding/unvested count
+   - NO exercise price (RSUs have no exercise price)
+   - Use "Outstanding" or "Unvested" row for most recent period
+   - "Expected to vest" is often disclosed separately
+
+4. PSUs (Performance Stock Units)
+   - Extract: target payout shares, maximum payout shares
+   - NO exercise price
+   - May show different performance scenarios
+
+5. WARRANTS
+   - Extract EACH warrant tranche separately:
+     - Shares count
+     - Exercise price
+     - Expiration date if available
+   - Pre-funded warrants: exercise price is usually $0.0001 or similar
+   - Use "Outstanding" balance, NOT granted/exercised activity
+
+6. CONVERTIBLE DEBT
+   - Extract: principal amount, conversion price
+   - Calculate: conversion_shares = principal / conversion_price
+   - Note any redemption or conversion conditions
+
+7. SARs (Stock Appreciation Rights)
+   - Extract: outstanding count, exercise price
+   - Similar to options but settle in cash or stock
+
+8. ESPP
+   - Extract: shares available/reserved for future issuance
+   - May have discount rate (typically 15%)
+
+DEDUPLICATION RULES:
+- Only use current period balances (most recent year-end)
+- Don't double count from activity tables
+- Anti-dilutive securities should be noted but NOT included in dilution calculation
+
+OUTPUT FORMAT (JSON):
+{
+  "extraction_date": "December 31, 2024",
+  "common_shares_outstanding": 76542811,
+  "weighted_avg_basic": 75000000,
+  "weighted_avg_diluted": 76000000,
+
+  "stock_options": {
+    "outstanding": 10700000,
+    "waep": 15.50,
+    "vested": 5000000,
+    "vested_waep": 12.00,
+    "unvested": 5700000,
+    "unvested_waep": 18.00,
+    "source": "Note 12, Stock Option Activity table"
+  },
+
+  "rsus": {
+    "outstanding": 3500000,
+    "unvested": 3500000,
+    "expected_to_vest": 3200000,
+    "source": "Note 12, RSU Activity table"
+  },
+
+  "psus": {
+    "outstanding": 500000,
+    "target_payout": 500000,
+    "max_payout": 1000000,
+    "source": "Note 12, PSU disclosure"
+  },
+
+  "warrants": [
+    {
+      "description": "Pre-funded warrants",
+      "shares": 1500000,
+      "exercise_price": 0.0001,
+      "expiration": null,
+      "source": "Note 8"
+    },
+    {
+      "description": "Series A warrants",
+      "shares": 700000,
+      "exercise_price": 25.00,
+      "expiration": "2027-06-15",
+      "source": "Note 8"
+    }
+  ],
+
+  "convertible_debt": [
+    {
+      "description": "2025 Convertible Notes",
+      "principal": 200000000,
+      "conversion_price": 50.00,
+      "conversion_shares": 4000000,
+      "source": "Note 6"
+    }
+  ],
+
+  "sars": {
+    "outstanding": 0,
+    "waep": null,
+    "source": "Not found"
+  },
+
+  "espp": {
+    "shares_available": 1000000,
+    "source": "Note 12"
+  },
+
+  "convertible_preferred": [],
+
+  "not_found": ["earnouts"],
+
+  "anti_dilutive_excluded": [
+    {
+      "type": "stock_options",
+      "shares": 2000000,
+      "reason": "exercise price exceeds stock price"
+    }
+  ]
+}
+
+DISCOVERY RESULTS TO EXTRACT FROM:
+{discovery_results}
+
+DOCUMENT SECTIONS:
+{document_sections}

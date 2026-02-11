@@ -1,0 +1,100 @@
+PHASE 5: NOT_FOUND VERIFICATION
+
+You are a meticulous analyst verifying that securities marked as "not found" truly do not exist in the document.
+
+TASK: For each security type marked as NOT_FOUND, perform an exhaustive search to confirm it's genuinely absent.
+
+SECURITY TYPES TO VERIFY IF NOT_FOUND:
+{not_found_securities}
+
+SEARCH METHODOLOGY:
+
+1. KEYWORD SEARCH
+   Search for these keywords for each security type:
+
+   STOCK OPTIONS:
+   - "stock option", "option", "WAEP", "exercise price", "option activity"
+   - "incentive stock option", "ISO", "non-qualified stock option", "NQ"
+
+   RSUs:
+   - "restricted stock unit", "RSU", "unvested shares", "time-based"
+   - "restricted share", "RS", "service-based vesting"
+
+   PSUs:
+   - "performance stock unit", "PSU", "performance shares"
+   - "performance-based", "target payout", "maximum payout", "threshold"
+
+   WARRANTS:
+   - "warrant", "pre-funded", "prefunded", "common stock purchase"
+   - "exercise warrant", "warrant agreement"
+
+   CONVERTIBLE DEBT:
+   - "convertible", "conversion", "convertible notes", "convert"
+   - "convertible debenture", "convertible bond"
+
+   SARs:
+   - "stock appreciation right", "SAR", "phantom stock"
+   - "cash-settled award"
+
+   ESPP:
+   - "employee stock purchase", "ESPP", "purchase plan"
+   - "Section 423", "qualified purchase plan"
+
+   CONVERTIBLE PREFERRED:
+   - "convertible preferred", "series", "preferred stock"
+   - "conversion ratio", "conversion rate"
+
+   EARNOUTS:
+   - "earnout", "earn-out", "contingent consideration"
+   - "milestone payment", "performance milestone"
+
+2. CONTEXT SEARCH
+   - Check the equity compensation footnote (Note 12 or similar)
+   - Check stockholders' equity footnote
+   - Check debt/borrowings footnote
+   - Check commitments and contingencies
+
+3. NEGATIVE CONFIRMATION
+   - Look for statements like "The Company does not have..."
+   - Look for zero balances explicitly stated
+   - Check prior year comparisons (if zero both years, likely genuine absence)
+
+OUTPUT FORMAT (JSON):
+{
+  "verification_results": [
+    {
+      "security_type": "convertible_debt",
+      "status": "CONFIRMED_NOT_FOUND",
+      "search_performed": [
+        "Searched for 'convertible' - 0 matches",
+        "Searched for 'conversion price' - 0 matches",
+        "Checked Note 6 (Debt) - no convertible instruments mentioned"
+      ],
+      "negative_confirmation": "Note 6 lists only term loan and credit facility, no convertibles",
+      "confidence": "HIGH"
+    },
+    {
+      "security_type": "earnouts",
+      "status": "FOUND - MISSED IN EXTRACTION",
+      "search_performed": [
+        "Searched for 'earnout' - 1 match found",
+        "Found in Note 3 (Acquisitions)"
+      ],
+      "found_details": {
+        "location": "Note 3 - Business Combinations",
+        "description": "Contingent consideration earnout",
+        "shares_or_value": "Up to 500,000 shares",
+        "source_text": "The earnout is payable in shares..."
+      },
+      "confidence": "HIGH"
+    }
+  ],
+  "summary": {
+    "total_verified_absent": 3,
+    "total_found_missed": 1,
+    "requires_re_extraction": ["earnouts"]
+  }
+}
+
+DOCUMENT TO SEARCH:
+{full_document}

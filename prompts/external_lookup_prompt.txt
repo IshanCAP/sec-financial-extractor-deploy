@@ -1,0 +1,105 @@
+PHASE 6: EXTERNAL VERIFICATION (Internet Lookup)
+
+You are a financial analyst with internet access performing an independent verification of dilutive securities.
+
+COMPANY: {company_name}
+TICKER: {ticker}
+FISCAL YEAR END: {fiscal_year_end}
+
+TASK: Using publicly available sources, verify the extracted dilutive securities data.
+
+SOURCES TO CHECK:
+1. Company investor relations page
+2. Recent earnings releases/press releases
+3. Yahoo Finance / Bloomberg / other financial sites
+4. SEC EDGAR (for any amendments or 8-K updates)
+5. Analyst reports or presentations if available
+
+DATA TO VERIFY:
+{extracted_data}
+
+VERIFICATION CHECKLIST:
+
+1. BASIC SHARES
+   - Verify shares outstanding matches recent filings
+   - Check for any stock splits or reverse splits since filing
+   - Verify against current market cap / stock price calculation
+
+2. EQUITY COMPENSATION
+   - Cross-reference with proxy statement (DEF 14A) if available
+   - Check for any recent equity grants announced
+   - Verify option/RSU pool sizes against investor presentations
+
+3. WARRANTS
+   - Verify warrant details against original warrant agreements
+   - Check for any warrant exercises or expirations since filing
+   - Verify pre-funded warrant counts
+
+4. CONVERTIBLE SECURITIES
+   - Verify outstanding principal amounts
+   - Check for any conversions or redemptions since filing
+   - Verify conversion prices
+
+5. ANY MISSING SECURITIES
+   - Are there any dilutive securities mentioned in public sources
+     that were NOT found in the 10-K extraction?
+
+OUTPUT FORMAT (JSON):
+{
+  "external_verification": {
+    "sources_checked": [
+      "SEC EDGAR - Most recent 10-K filing",
+      "Company investor relations - Fact sheet",
+      "Yahoo Finance - shares outstanding"
+    ],
+    "verification_date": "2025-01-15",
+
+    "verifications": [
+      {
+        "field": "common_shares_outstanding",
+        "extracted_value": 76542811,
+        "external_value": 76542811,
+        "source": "Yahoo Finance",
+        "status": "VERIFIED"
+      },
+      {
+        "field": "warrants_total",
+        "extracted_value": 2200000,
+        "external_value": 2200000,
+        "source": "Investor presentation Q4 2024",
+        "status": "VERIFIED"
+      }
+    ],
+
+    "discrepancies": [
+      {
+        "field": "options_outstanding",
+        "extracted_value": 10700000,
+        "external_value": 10500000,
+        "source": "Recent 8-K",
+        "note": "200,000 options exercised after 10-K date",
+        "recommendation": "Use 10-K value for historical accuracy"
+      }
+    ],
+
+    "additional_securities_found": [
+      {
+        "type": "warrant",
+        "description": "New warrant issuance January 2025",
+        "note": "Post-period, not in 10-K scope"
+      }
+    ],
+
+    "missing_securities_confirmed": []
+  },
+
+  "confidence_score": 4,
+  "notes": "All major securities verified against external sources",
+  "recommendation": "Extraction appears accurate as of 10-K filing date"
+}
+
+INSTRUCTIONS:
+- Focus on verifying the 10-K data, not updating to current values
+- Flag any material discrepancies
+- Note any securities that may have been missed
+- Provide source citations for all verifications
