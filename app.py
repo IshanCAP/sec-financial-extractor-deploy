@@ -128,7 +128,7 @@ defaults = {
     # Section toggles (all enabled by default)
     "process_cash_position": True,
     "process_quarterly_burn": True,
-    "process_fdso": False,  # FDSO disabled by default (requires 10-K)
+    "process_fdso": True,  # FDSO enabled by default
 }
 
 for key, default in defaults.items():
