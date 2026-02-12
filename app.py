@@ -296,8 +296,14 @@ with section_col3:
     st.session_state.process_fdso = process_fdso
 
 if reset_clicked:
+    # Clear all extraction results and state
     for key in ["company_info", "filings", "extraction_results", "cash_position", "quarterly_fcf", "burn_metrics", "extraction_complete", "tenk_filings", "fdso_sections", "fdso_instruments", "fdso_empty_sections"]:
-        st.session_state[key] = defaults[key]
+        if key in defaults:
+            st.session_state[key] = defaults[key]
+    # Clear FDSO-related state
+    for key in ["fdso_result", "fdso_auto_result", "current_stock_price", "auto_fetched_price", "auto_price_fetched", "fdso_calc_price", "fdso_needs_recalc", "fdso_analysis"]:
+        if key in st.session_state:
+            del st.session_state[key]
     st.session_state.ticker = ""
     st.rerun()
 
@@ -317,6 +323,11 @@ if search_clicked and ticker_input:
         st.session_state.quarterly_fcf = []
         st.session_state.burn_metrics = None
         st.session_state.tenk_filings = []
+
+        # Reset FDSO-related state to fetch fresh data for new ticker
+        for key in ["fdso_result", "fdso_auto_result", "current_stock_price", "auto_fetched_price", "auto_price_fetched", "fdso_calc_price", "fdso_needs_recalc", "fdso_analysis"]:
+            if key in st.session_state:
+                del st.session_state[key]
 
         # Check if any section is selected
         if not st.session_state.process_cash_position and not st.session_state.process_quarterly_burn and not st.session_state.process_fdso:
@@ -1170,6 +1181,8 @@ if st.session_state.process_fdso:
                             st.session_state.current_stock_price = fetched_price
                             st.session_state.auto_fetched_price = fetched_price
                             st.session_state.auto_price_fetched = True
+                            # Auto-trigger calculation with fetched price
+                            st.session_state.fdso_needs_recalc = True
                         else:
                             st.session_state.auto_fetched_price = None
                             st.session_state.auto_price_fetched = True
@@ -1237,9 +1250,9 @@ if st.session_state.process_fdso:
                         if 'price_used' in result and 'included_count' in result:
                             st.caption(f"At ${result['price_used']:.2f} | {result['included_count']} securities included")
                     elif st.session_state.current_stock_price and st.session_state.current_stock_price > 0:
-                        st.info("Click Calculate to compute FDSO")
+                        st.info("Calculating FDSO...")
                     else:
-                        st.info("Enter price and click Calculate")
+                        st.info("Enter price to calculate FDSO")
 
                 # Store price for calculation
                 if st.session_state.current_stock_price and st.session_state.current_stock_price > 0:
