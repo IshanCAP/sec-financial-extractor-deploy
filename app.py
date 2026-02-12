@@ -1091,17 +1091,27 @@ elif not st.session_state.extraction_complete:
     - Average quarterly burn (with quarter selection)
     - Cash runway projection
 
+    **Fully Diluted Shares Outstanding (FDSO)** (from most recent 10-K):
+    - AI-powered extraction of dilutive securities
+    - Stock options, RSUs, PSUs, warrants, convertible debt
+    - Treasury Stock Method (TSM) calculations
+    - Interactive FDSO calculator at different stock prices
+    - Visual graph showing dilution vs price
+    - Automatic calculation at current market price
+
     ### Features
     - 🔗 Direct links to SEC filings
     - 📝 Evidence snippets showing source data
     - ✅ Select/deselect quarters for burn calculation
     - 🔧 Manual override option for burn rate
+    - 📊 Interactive FDSO calculator and dilution analysis
+    - 📈 Real-time stock price fetching via Yahoo Finance
     """)
 
 # =============================================================================
 # FDSO - AI Analysis Results (Independent Section)
 # =============================================================================
-if st.session_state.process_fdso:
+if st.session_state.extraction_complete and st.session_state.process_fdso:
     st.markdown("---")
     try:
         st.header("📈 Fully Diluted Shares Outstanding (FDSO)")
