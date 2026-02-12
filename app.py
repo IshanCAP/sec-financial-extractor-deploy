@@ -656,20 +656,20 @@ if st.session_state.company_info:
         else:
             st.metric("🔥 Avg Quarterly Burn", "N/A")
 
-    # FDSO Summary
+    # FDSO Summary (using auto-fetched current price)
     with summary_col3:
         try:
-            if hasattr(st.session_state, 'fdso_result') and st.session_state.fdso_result:
-                result = st.session_state.fdso_result
+            if hasattr(st.session_state, 'fdso_auto_result') and st.session_state.fdso_auto_result:
+                result = st.session_state.fdso_auto_result
                 st.metric(
                     "📈 FDSO",
                     f"{result['fdso']:,.0f}",
                     delta=f"{result['dilution_pct']:.2f}% dilution",
                     delta_color="inverse",
-                    help=f"At price ${st.session_state.current_stock_price:.2f}"
+                    help=f"At current price ${result['price_used']:.2f}"
                 )
             else:
-                st.metric("📈 FDSO", "N/A", help="Enter stock price in FDSO section")
+                st.metric("📈 FDSO", "N/A", help="Calculate FDSO in section below")
         except Exception as e:
             st.metric("📈 FDSO", "Error", help=str(e))
 
@@ -1486,6 +1486,21 @@ if st.session_state.process_fdso:
                                 "price_used": st.session_state.fdso_calc_price,
                                 "included_count": len(included_calc_df)
                             }
+
+                            # Also calculate FDSO at auto-fetched price for summary display
+                            if st.session_state.get('auto_fetched_price') and st.session_state.auto_fetched_price > 0:
+                                fdso_auto_calc = calculate_fdso_at_price(st.session_state.auto_fetched_price)
+                                dilution_auto_pct = ((fdso_auto_calc - calc_bso) / calc_bso * 100) if calc_bso > 0 else 0
+                                st.session_state.fdso_auto_result = {
+                                    "fdso": fdso_auto_calc,
+                                    "bso": calc_bso,
+                                    "dilution_pct": dilution_auto_pct,
+                                    "price_used": st.session_state.auto_fetched_price,
+                                    "included_count": len(included_calc_df)
+                                }
+                            else:
+                                # No auto-fetched price, use manual result for summary too
+                                st.session_state.fdso_auto_result = st.session_state.fdso_result
 
                             # If Calculate button was just clicked, rerun to show results immediately
                             if st.session_state.get('fdso_needs_recalc', False):
