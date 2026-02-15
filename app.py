@@ -561,6 +561,7 @@ if search_clicked and ticker_input:
 
                     # Process Fully Diluted Shares if selected (needs 10-K)
                     if st.session_state.process_fdso:
+                      try:
                         st.write("📈 Retrieving 10-K filing...")
 
                         # Get 10-K filing
@@ -613,6 +614,11 @@ if search_clicked and ticker_input:
                         else:
                             st.write("   ⚠️ No 10-K filings found")
                             st.session_state.fdso_analysis_error = "No 10-K filings found"
+                      except Exception as e:
+                        logger.error(f"FDSO processing error: {e}", exc_info=True)
+                        st.write(f"   ⚠️ FDSO processing failed: {e}")
+                        st.session_state.fdso_analysis = None
+                        st.session_state.fdso_analysis_error = str(e)
 
                     st.session_state.extraction_complete = True
                     status.update(label="Extraction complete!", state="complete")
@@ -644,12 +650,15 @@ if st.session_state.company_info:
         if st.session_state.get("cash_position"):
             cash_pos = st.session_state.cash_position
             net_value = cash_pos.net_cash_position
-            if net_value >= 0:
+            if net_value is not None and net_value >= 0:
                 # Positive - Green
                 st.markdown(f'<div style="text-align: left;"><p style="color: #0F9D58; font-size: 20px; font-weight: bold; margin: 0;">💰 Net Cash Position</p><p style="color: #0F9D58; font-size: 32px; font-weight: bold; margin: 0;">{cash_pos.net_cash_formatted}</p></div>', unsafe_allow_html=True)
-            else:
+            elif net_value is not None:
                 # Negative - Red
                 st.markdown(f'<div style="text-align: left;"><p style="color: #DB4437; font-size: 20px; font-weight: bold; margin: 0;">💰 Net Cash Position</p><p style="color: #DB4437; font-size: 32px; font-weight: bold; margin: 0;">{cash_pos.net_cash_formatted}</p></div>', unsafe_allow_html=True)
+            else:
+                # No debt data - show total cash instead
+                st.markdown(f'<div style="text-align: left;"><p style="color: #0F9D58; font-size: 20px; font-weight: bold; margin: 0;">💰 Total Cash</p><p style="color: #0F9D58; font-size: 32px; font-weight: bold; margin: 0;">{cash_pos.total_formatted}</p></div>', unsafe_allow_html=True)
         else:
             st.metric("💰 Net Cash Position", "N/A")
 
@@ -785,6 +794,39 @@ if st.session_state.extraction_complete and st.session_state.company_info:
                             st.markdown("")
             else:
                 st.warning("Cash position data not available")
+                if st.button("🔄 Re-extract Cash Position", key="rerun_cash_nodata"):
+                    with st.spinner("Re-extracting cash position..."):
+                        try:
+                            sec_client = SECClient()
+                            extractor = FinancialExtractor(api_key=st.session_state.openai_api_key)
+                            ticker = st.session_state.ticker
+                            # Re-fetch filing if needed
+                            if not st.session_state.filings:
+                                company_info, filings_10q = sec_client.get_10q_filings(ticker=ticker, num_quarters=1)
+                                if filings_10q:
+                                    st.session_state.filings = filings_10q
+                            if st.session_state.filings:
+                                filing = st.session_state.filings[0]
+                                content = sec_client.download_filing(filing, max_chars=200000)
+                                if content:
+                                    result = extractor.extract_all(content)
+                                    if result.get("success") and result.get("balance_sheet"):
+                                        cash_pos = calculate_cash_position(result["balance_sheet"])
+                                        st.session_state.cash_position = cash_pos
+                                        if st.session_state.extraction_results:
+                                            st.session_state.extraction_results[0] = result
+                                        else:
+                                            st.session_state.extraction_results = [result]
+                                        st.success("Cash position re-extracted!")
+                                        st.rerun()
+                                    else:
+                                        st.error("Extraction succeeded but no balance sheet data found")
+                                else:
+                                    st.error("Failed to download filing")
+                            else:
+                                st.error("No filings available to re-extract from")
+                        except Exception as e:
+                            st.error(f"Re-extraction failed: {e}")
         except Exception as e:
             st.error(f"Error displaying Cash Position section: {str(e)}")
             logger.error(f"Cash position display error: {e}", exc_info=True)
@@ -1022,6 +1064,58 @@ if st.session_state.extraction_complete and st.session_state.company_info:
 
             else:
                 st.warning("Quarterly FCF data not available")
+                if st.button("🔄 Re-extract All Quarters", key="rerun_quarters_nodata"):
+                    with st.spinner("Re-extracting quarterly data from all filings..."):
+                        try:
+                            sec_client = SECClient()
+                            extractor = FinancialExtractor(api_key=st.session_state.openai_api_key)
+                            burn_calc = BurnCalculator()
+                            ticker = st.session_state.ticker
+                            # Re-fetch filings if needed
+                            if not st.session_state.filings:
+                                company_info, filings_10q = sec_client.get_10q_filings(ticker=ticker, num_quarters=4)
+                                _, filings_10k = sec_client.get_10k_filings(ticker=ticker, num_years=1)
+                                if filings_10q:
+                                    st.session_state.filings = filings_10q + (filings_10k or [])
+                            if st.session_state.filings:
+                                results = []
+                                cash_flows_raw = []
+                                for filing in st.session_state.filings:
+                                    form_type = filing.form_type or "10-Q"
+                                    max_chars = 300000 if form_type == "10-K" else 200000
+                                    content = sec_client.download_filing(filing, max_chars=max_chars)
+                                    if content:
+                                        result = extractor.extract_all(content)
+                                        result["filing"] = filing
+                                        results.append(result)
+                                        if result.get("success") and result.get("cash_flow"):
+                                            cash_flows_raw.append(result["cash_flow"])
+                                # Convert YTD to quarterly
+                                has_ytd = any(cf.period_months != 3 for cf in cash_flows_raw)
+                                if has_ytd and len(cash_flows_raw) > 1:
+                                    quarterly_cash_flows = calculate_quarterly_from_ytd(cash_flows_raw)
+                                else:
+                                    quarterly_cash_flows = cash_flows_raw
+                                quarterly_fcf_list = []
+                                for cf in quarterly_cash_flows:
+                                    qfcf = burn_calc.create_quarterly_fcf(cf)
+                                    if qfcf:
+                                        quarterly_fcf_list.append(qfcf)
+                                st.session_state.extraction_results = results
+                                st.session_state.quarterly_fcf = quarterly_fcf_list
+                                if quarterly_fcf_list:
+                                    burn_metrics = burn_calc.calculate_average_burn(
+                                        quarterly_fcf_list,
+                                        manual_override=st.session_state.manual_burn_override,
+                                        cash_position=st.session_state.cash_position
+                                    )
+                                    st.session_state.burn_metrics = burn_metrics
+                                st.success("Quarterly data re-extracted!")
+                                st.rerun()
+                            else:
+                                st.error("No filings available to re-extract from")
+                        except Exception as e:
+                            st.error(f"Re-extraction failed: {e}")
         except Exception as e:
             st.error(f"Error displaying Quarterly Burn section: {str(e)}")
             logger.error(f"Burn rate display error: {e}", exc_info=True)
@@ -1120,6 +1214,43 @@ if st.session_state.extraction_complete and st.session_state.process_fdso:
         # Check if we have the 10-K filing
         if not st.session_state.tenk_filings:
             st.warning("⚠️ No 10-K filing found. Please run the extraction first.")
+            if st.button("🔄 Re-extract FDSO", key="rerun_fdso_nofiling"):
+                with st.spinner("Fetching 10-K and running FDSO analysis..."):
+                    try:
+                        sec_client = SECClient()
+                        ticker = st.session_state.ticker
+                        _, tenk_filings = sec_client.get_10k_filings(ticker=ticker, num_years=1)
+                        if tenk_filings:
+                            st.session_state.tenk_filings = tenk_filings
+                            filing = tenk_filings[0]
+                            filing_content_obj = sec_client.download_filing(filing, max_chars=None)
+                            if filing_content_obj:
+                                fdso_analyzer = FDSOAIAnalyzer(
+                                    api_key=st.session_state.openai_api_key,
+                                    model=st.session_state.get("fdso_model", "gpt-5.2")
+                                )
+                                analysis_result = fdso_analyzer.analyze_10k(
+                                    filing_content=filing_content_obj.plain_text,
+                                    filing_url=filing.filing_url,
+                                    ticker=ticker,
+                                    filing_date=str(filing.filing_date) if filing.filing_date else None
+                                )
+                                if analysis_result.get("success"):
+                                    st.session_state.fdso_analysis = analysis_result.get("data")
+                                    st.session_state.fdso_analysis_error = None
+                                else:
+                                    st.session_state.fdso_analysis = None
+                                    st.session_state.fdso_analysis_error = analysis_result.get("error")
+                            else:
+                                st.session_state.fdso_analysis_error = "Failed to download 10-K"
+                        else:
+                            st.session_state.fdso_analysis_error = "No 10-K filings found for this ticker"
+                        # Clear stale calculation state
+                        st.session_state.pop("fdso_result", None)
+                        st.session_state.pop("fdso_auto_result", None)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Re-extraction failed: {e}")
         else:
             filing = st.session_state.tenk_filings[0]
 
@@ -2059,6 +2190,39 @@ Where:
             else:
                 st.markdown(f"[View 10-K Filing]({filing.filing_url})")
                 st.caption(f"Filing Date: {filing.filing_date} | Period: {filing.period_of_report}")
+
+            # Re-extract button (always visible when tenk_filings exist)
+            if st.button("🔄 Re-extract FDSO", key="rerun_fdso"):
+                with st.spinner("Re-running FDSO analysis on 10-K..."):
+                    try:
+                        sec_client = SECClient()
+                        filing = st.session_state.tenk_filings[0]
+                        filing_content_obj = sec_client.download_filing(filing, max_chars=None)
+                        if filing_content_obj:
+                            fdso_analyzer = FDSOAIAnalyzer(
+                                api_key=st.session_state.openai_api_key,
+                                model=st.session_state.get("fdso_model", "gpt-5.2")
+                            )
+                            analysis_result = fdso_analyzer.analyze_10k(
+                                filing_content=filing_content_obj.plain_text,
+                                filing_url=filing.filing_url,
+                                ticker=st.session_state.ticker,
+                                filing_date=str(filing.filing_date) if filing.filing_date else None
+                            )
+                            if analysis_result.get("success"):
+                                st.session_state.fdso_analysis = analysis_result.get("data")
+                                st.session_state.fdso_analysis_error = None
+                            else:
+                                st.session_state.fdso_analysis = None
+                                st.session_state.fdso_analysis_error = analysis_result.get("error")
+                        else:
+                            st.session_state.fdso_analysis_error = "Failed to download 10-K"
+                        # Clear stale calculation state
+                        st.session_state.pop("fdso_result", None)
+                        st.session_state.pop("fdso_auto_result", None)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Re-extraction failed: {e}")
 
     except Exception as e:
         st.error(f"Error displaying FDSO section: {str(e)}")

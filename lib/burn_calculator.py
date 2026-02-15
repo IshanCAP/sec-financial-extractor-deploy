@@ -127,8 +127,8 @@ def calculate_quarterly_from_ytd(
             ocf_6mo = cf.operating_cash_flow or 0
             capex_6mo = cf.capital_expenditure or 0
             calc_note = (
-                f"Calculated Q2: OCF: 6mo YTD (${ocf_6mo/1e6:,.1f}M) - 3mo (${prev_ocf/1e6:,.1f}M) = ${q2_ocf/1e6:,.1f}M | "
-                f"CapEx: 6mo YTD (${capex_6mo/1e6:,.1f}M) - 3mo (${prev_capex/1e6:,.1f}M) = ${q2_capex/1e6:,.1f}M | "
+                f"Calculated Q2: OCF: 6mo YTD (${ocf_6mo/1e6:,.1f}M) - 3mo (${prev_ocf/1e6:,.1f}M) = ${(q2_ocf or 0)/1e6:,.1f}M | "
+                f"CapEx: 6mo YTD (${capex_6mo/1e6:,.1f}M) - 3mo (${prev_capex/1e6:,.1f}M) = ${(q2_capex or 0)/1e6:,.1f}M | "
                 f"Sources: 6mo from {period_end_str}, 3mo from {prev_date}"
             )
 
@@ -148,7 +148,7 @@ def calculate_quarterly_from_ytd(
                 period_months=3
             )
             result.append(quarterly_cf)
-            logger.info(f"Q2: Calculated OCF = ${q2_ocf:,.0f} (6mo {period_end_str} - 3mo {prev_date})")
+            logger.info(f"Q2: Calculated OCF = ${(q2_ocf or 0):,.0f} (6mo {period_end_str} - 3mo {prev_date})")
         else:
             logger.warning(f"Q2: Cannot calculate for {period_end_str} - no matching 3-month prior period found")
 
@@ -168,8 +168,8 @@ def calculate_quarterly_from_ytd(
             ocf_9mo = cf.operating_cash_flow or 0
             capex_9mo = cf.capital_expenditure or 0
             calc_note = (
-                f"Calculated Q3: OCF: 9mo YTD (${ocf_9mo/1e6:,.1f}M) - 6mo YTD (${prev_ocf/1e6:,.1f}M) = ${q3_ocf/1e6:,.1f}M | "
-                f"CapEx: 9mo YTD (${capex_9mo/1e6:,.1f}M) - 6mo YTD (${prev_capex/1e6:,.1f}M) = ${q3_capex/1e6:,.1f}M | "
+                f"Calculated Q3: OCF: 9mo YTD (${ocf_9mo/1e6:,.1f}M) - 6mo YTD (${prev_ocf/1e6:,.1f}M) = ${(q3_ocf or 0)/1e6:,.1f}M | "
+                f"CapEx: 9mo YTD (${capex_9mo/1e6:,.1f}M) - 6mo YTD (${prev_capex/1e6:,.1f}M) = ${(q3_capex or 0)/1e6:,.1f}M | "
                 f"Sources: 9mo from {period_end_str}, 6mo from {prev_date}"
             )
 
@@ -188,7 +188,7 @@ def calculate_quarterly_from_ytd(
                 period_months=3
             )
             result.append(quarterly_cf)
-            logger.info(f"Q3: Calculated OCF = ${q3_ocf:,.0f} (9mo {period_end_str} - 6mo {prev_date})")
+            logger.info(f"Q3: Calculated OCF = ${(q3_ocf or 0):,.0f} (9mo {period_end_str} - 6mo {prev_date})")
         else:
             logger.warning(f"Q3: Cannot calculate for {period_end_str} - no matching 6-month prior period found")
 
@@ -214,7 +214,7 @@ def calculate_quarterly_from_ytd(
             capex_12mo = cf.capital_expenditure or 0
             calc_note = (
                 f"Calculated Q4: OCF: 12mo Annual (${ocf_12mo/1e6:,.1f}M) - 9mo YTD (${prev_ocf/1e6:,.1f}M) = ${q4_ocf/1e6:,.1f}M | "
-                f"CapEx: 12mo Annual (${capex_12mo/1e6:,.1f}M) - 9mo YTD (${prev_capex/1e6:,.1f}M) = ${q4_capex/1e6:,.1f}M | "
+                f"CapEx: 12mo Annual (${capex_12mo/1e6:,.1f}M) - 9mo YTD (${prev_capex/1e6:,.1f}M) = ${(q4_capex or 0)/1e6:,.1f}M | "
                 f"Sources: 12mo from {period_end_str} (10-K), 9mo from {prev_date}"
             )
 
